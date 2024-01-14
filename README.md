@@ -1,6 +1,6 @@
 # hyper-proxy2
 
-[![Travis Build Status](https://travis-ci.org/siketyan/hyper-proxy2.svg?branch=master)](https://travis-ci.org/siketyan/hyper-proxy2)
+[![Checks](https://github.com/siketyan/hyper-proxy2/actions/workflows/checks.yaml/badge.svg)](https://github.com/siketyan/hyper-proxy2/actions/workflows/checks.yaml)
 [![MIT licensed](https://img.shields.io/github/license/siketyan/hyper-proxy2)](./LICENSE-MIT.md)
 [![crates.io](https://img.shields.io/crates/v/hyper-proxy2)](https://crates.io/crates/hyper-proxy2)
 
