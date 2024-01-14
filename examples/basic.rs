@@ -16,7 +16,13 @@ async fn main() -> Result<(), Box<dyn Error>> {
         let mut proxy = Proxy::new(Intercept::All, proxy_uri);
         proxy.set_authorization(Authorization::basic("John Doe", "Agent1234"));
         let connector = HttpConnector::new();
+
+        #[cfg(not(any(feature = "tls", feature = "rustls-base", feature = "openssl-tls")))]
+        let proxy_connector = ProxyConnector::from_proxy_unsecured(connector, proxy);
+
+        #[cfg(any(feature = "tls", feature = "rustls-base", feature = "openssl"))]
         let proxy_connector = ProxyConnector::from_proxy(connector, proxy).unwrap();
+
         proxy_connector
     };
 
