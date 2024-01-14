@@ -1,42 +1,47 @@
 [package]
-name = "hyper-proxy"
-version = "0.9.0"
-authors = ["Johann Tuffe <tafia973@gmail.com>"]
+name = "hyper-proxy2"
+version = "0.1.0"
+authors = ["Natsuki Ikeguchi <me@s6n.jp>"]
 description = "A proxy connector for Hyper-based applications"
 
 documentation = "https://docs.rs/hyper-proxy"
-repository = "https://github.com/tafia/hyper-proxy"
+repository = "https://github.com/siketyan/hyper-proxy"
 
 readme = "README.md"
 keywords = ["hyper", "proxy", "tokio", "ssl"]
 categories = ["web-programming::http-client", "asynchronous", "authentication"]
 license = "MIT"
-edition = "2018"
+edition = "2021"
 
 [dependencies]
-tokio = { version = "1", features = ["io-std", "io-util"] }
-hyper = { version = "0.14", features = ["client"] }
+tokio = { version = "1.35", features = ["io-std", "io-util"] }
+hyper = { version = "1.0", features = ["client"] }
+hyper-util = { version = "0.1.2", features = ["client", "client-legacy", "tokio"] }
 
-tower-service = "0.3"
-http = "0.2"
-futures-util = { version = "0.3", default-features = false }
-bytes = "1.0"
-hyper-tls = { version = "0.5.0", optional = true }
-tokio-native-tls = { version = "0.3.0", optional = true }
-native-tls = { version = "0.2", optional = true }
-openssl = { version = "0.10", optional = true }
-tokio-openssl = { version = "0.6", optional = true }
-tokio-rustls = { version = "0.22", optional = true }
-hyper-rustls = { version = "0.22", optional = true }
+tower-service = "0.3.2"
+http = "1.0"
+futures-util = { version = "0.3.30", default-features = false }
+bytes = "1.5"
+pin-project-lite = "0.2.13"
+hyper-tls = { version = "0.6.0", optional = true }
+tokio-native-tls = { version = "0.3.1", optional = true }
+native-tls = { version = "0.2.11", optional = true }
+openssl = { version = "0.10.62", optional = true }
+tokio-openssl = { version = "0.6.4", optional = true }
+tokio-rustls = { version = "0.25.0", optional = true }
+hyper-rustls = { version = "0.26.0", optional = true }
 
-webpki = { version = "0.21", optional = true }
-rustls-native-certs = { version = "0.5.0", optional = true }
-webpki-roots = { version = "0.21.0", optional = true }
-headers = "0.3"
+webpki = { version = "0.22", optional = true }
+rustls-native-certs = { version = "0.7.0", optional = true }
+webpki-roots = { version = "0.26.0", optional = true }
+headers = "0.4"
 
 [dev-dependencies]
-tokio = { version = "1.0", features = ["full"] }
-hyper = { version = "0.14", features = ["client", "http1", "tcp"] }
+tokio = { version = "1.35", features = ["full"] }
+hyper = { version = "1.0", features = ["client", "http1"] }
+hyper-util = { version = "0.1.2", features = ["client", "client-legacy", "http1", "tokio"] }
+http-body-util = "0.1.0"
+futures = "0.3.30"
 
 [features]
 openssl-tls = ["openssl", "tokio-openssl"]

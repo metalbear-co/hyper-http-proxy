@@ -1,12 +1,15 @@
-use crate::io_err;
-use bytes::{buf::Buf, BytesMut};
-use http::HeaderMap;
 use std::fmt::{self, Display, Formatter};
 use std::future::Future;
 use std::io;
 use std::pin::Pin;
 use std::task::{Context, Poll};
-use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
+
+use bytes::{buf::Buf, BytesMut};
+use http::HeaderMap;
+use hyper::rt::{Read, Write};
+
+use crate::io_err;
+use crate::rt::{ReadExt as _, WriteExt as _};
 
 macro_rules! try_ready {
     ($x:expr) => {
@@ -76,7 +79,7 @@ pub(crate) fn new(host: &str, port: u16, headers: &HeaderMap) -> TunnelConnect {
     }
 }
 
-impl<S: AsyncRead + AsyncWrite + Unpin> Future for Tunnel<S> {
+impl<S: Read + Write + Unpin> Future for Tunnel<S> {
     type Output = Result<S, io::Error>;
 
     fn poll(self: Pin<&mut Self>, ctx: &mut Context<'_>) -> Poll<Self::Output> {
@@ -131,6 +134,7 @@ impl<S: AsyncRead + AsyncWrite + Unpin> Future for Tunnel<S> {
 mod tests {
     use super::{HeaderMap, Tunnel};
     use futures_util::future::TryFutureExt;
+    use hyper_util::rt::TokioIo;
     use std::io::{Read, Write};
     use std::net::TcpListener;
     use std::thread;
@@ -184,7 +188,7 @@ mod tests {
         let work = TcpStream::connect(&addr);
         let host = addr.ip().to_string();
         let port = addr.port();
-        let work = work.and_then(|tcp| tunnel(tcp, host, port));
+        let work = work.and_then(|tcp| tunnel(TokioIo::new(tcp), host, port));
 
         core.block_on(work).unwrap();
     }
@@ -197,7 +201,7 @@ mod tests {
         let work = TcpStream::connect(&addr);
         let host = addr.ip().to_string();
         let port = addr.port();
-        let work = work.and_then(|tcp| tunnel(tcp, host, port));
+        let work = work.and_then(|tcp| tunnel(TokioIo::new(tcp), host, port));
 
         core.block_on(work).unwrap_err();
     }
@@ -210,7 +214,7 @@ mod tests {
         let work = TcpStream::connect(&addr);
         let host = addr.ip().to_string();
         let port = addr.port();
-        let work = work.and_then(|tcp| tunnel(tcp, host, port));
+        let work = work.and_then(|tcp| tunnel(TokioIo::new(tcp), host, port));
 
         core.block_on(work).unwrap_err();
     }
