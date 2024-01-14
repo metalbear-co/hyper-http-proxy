@@ -3,15 +3,14 @@ name = "hyper-proxy2"
 version = "0.1.0"
 authors = ["Natsuki Ikeguchi <me@s6n.jp>"]
 description = "A proxy connector for Hyper-based applications"
-
-documentation = "https://docs.rs/hyper-proxy"
-repository = "https://github.com/siketyan/hyper-proxy"
-
+documentation = "https://docs.rs/hyper-proxy2"
+repository = "https://github.com/siketyan/hyper-proxy2"
 readme = "README.md"
 keywords = ["hyper", "proxy", "tokio", "ssl"]
 categories = ["web-programming::http-client", "asynchronous", "authentication"]
 license = "MIT"
 edition = "2021"
+rust-version = "1.70.0"
 
 [dependencies]
 tokio = { version = "1.35", features = ["io-std", "io-util"] }
