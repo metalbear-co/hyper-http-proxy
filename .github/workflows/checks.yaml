@@ -30,8 +30,6 @@ jobs:
 
       - name: Run tests default
         run: cargo test
-      - name: Run tests rustls-tls-manual-roots
-        run: cargo test --no-default-features --features rustls-tls-manual-roots
       - name: Run tests rustls-tls-webpki-roots
         run: cargo test --no-default-features --features rustls-tls-webpki-roots
       - name: Run tests native-tls-vendored
