@@ -5,32 +5,26 @@ use std::task::{Context, Poll};
 use hyper::rt::{Read, ReadBufCursor, Write};
 use hyper_util::client::legacy::connect::{Connected, Connection};
 
-#[cfg(any(feature = "rustls-base", feature = "tls", feature = "openssl-tls"))]
+#[cfg(feature = "__tls")]
 use hyper_util::rt::TokioIo;
 
-#[cfg(feature = "rustls-base")]
+#[cfg(feature = "__rustls")]
 use tokio_rustls::client::TlsStream as RustlsStream;
 
-#[cfg(feature = "tls")]
+#[cfg(all(not(feature = "__rustls"), feature = "native-tls"))]
 use tokio_native_tls::TlsStream as TokioNativeTlsStream;
 
-#[cfg(feature = "openssl-tls")]
-use tokio_openssl::SslStream as OpenSslStream;
-
-#[cfg(feature = "rustls-base")]
+#[cfg(feature = "__rustls")]
 pub type TlsStream<R> = TokioIo<RustlsStream<TokioIo<R>>>;
 
-#[cfg(feature = "tls")]
+#[cfg(all(not(feature = "__rustls"), feature = "native-tls"))]
 pub type TlsStream<R> = TokioIo<TokioNativeTlsStream<TokioIo<R>>>;
-
-#[cfg(feature = "openssl-tls")]
-pub type TlsStream<R> = TokioIo<OpenSslStream<TokioIo<R>>>;
 
 /// A Proxy Stream wrapper
 pub enum ProxyStream<R> {
     NoProxy(R),
     Regular(R),
-    #[cfg(any(feature = "tls", feature = "rustls-base", feature = "openssl-tls"))]
+    #[cfg(feature = "__tls")]
     Secured(TlsStream<R>),
 }
 
@@ -39,7 +33,7 @@ macro_rules! match_fn_pinned {
         match $self.get_mut() {
             ProxyStream::NoProxy(s) => Pin::new(s).$fn($ctx, $buf),
             ProxyStream::Regular(s) => Pin::new(s).$fn($ctx, $buf),
-            #[cfg(any(feature = "tls", feature = "rustls-base", feature = "openssl-tls"))]
+            #[cfg(feature = "__tls")]
             ProxyStream::Secured(s) => Pin::new(s).$fn($ctx, $buf),
         }
     };
@@ -48,7 +42,7 @@ macro_rules! match_fn_pinned {
         match $self.get_mut() {
             ProxyStream::NoProxy(s) => Pin::new(s).$fn($ctx),
             ProxyStream::Regular(s) => Pin::new(s).$fn($ctx),
-            #[cfg(any(feature = "tls", feature = "rustls-base", feature = "openssl-tls"))]
+            #[cfg(feature = "__tls")]
             ProxyStream::Secured(s) => Pin::new(s).$fn($ctx),
         }
     };
@@ -85,7 +79,7 @@ impl<R: Read + Write + Unpin> Write for ProxyStream<R> {
         match self {
             ProxyStream::NoProxy(s) => s.is_write_vectored(),
             ProxyStream::Regular(s) => s.is_write_vectored(),
-            #[cfg(any(feature = "tls", feature = "rustls-base", feature = "openssl-tls"))]
+            #[cfg(feature = "__tls")]
             ProxyStream::Secured(s) => s.is_write_vectored(),
         }
     }
@@ -105,7 +99,7 @@ impl<R: Read + Write + Connection + Unpin> Connection for ProxyStream<R> {
             ProxyStream::NoProxy(s) => s.connected(),
 
             ProxyStream::Regular(s) => s.connected().proxy(true),
-            #[cfg(feature = "tls")]
+            #[cfg(all(not(feature = "__rustls"), feature = "native-tls"))]
             ProxyStream::Secured(s) => s
                 .inner()
                 .get_ref()
@@ -115,11 +109,8 @@ impl<R: Read + Write + Connection + Unpin> Connection for ProxyStream<R> {
                 .connected()
                 .proxy(true),
 
-            #[cfg(feature = "rustls-base")]
+            #[cfg(feature = "__rustls")]
             ProxyStream::Secured(s) => s.inner().get_ref().0.inner().connected().proxy(true),
-
-            #[cfg(feature = "openssl-tls")]
-            ProxyStream::Secured(s) => s.inner().get_ref().inner().connected().proxy(true),
         }
     }
 }
