@@ -4,7 +4,7 @@ use bytes::Bytes;
 use headers::Authorization;
 use http_body_util::{BodyExt, Empty};
 use hyper::{Request, Uri};
-use hyper_proxy2::{Intercept, Proxy, ProxyConnector};
+use hyper_http_proxy::{Intercept, Proxy, ProxyConnector};
 use hyper_util::client::legacy::connect::HttpConnector;
 use hyper_util::client::legacy::Client;
 use hyper_util::rt::TokioExecutor;

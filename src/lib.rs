@@ -9,7 +9,7 @@
 //! use bytes::Bytes;
 //! use futures_util::{TryFutureExt, TryStreamExt};
 //! use http_body_util::{BodyExt, Empty};
-//! use hyper_proxy2::{Proxy, ProxyConnector, Intercept};
+//! use hyper_http_proxy::{Proxy, ProxyConnector, Intercept};
 //! use headers::Authorization;
 //! use std::error::Error;
 //! use tokio::io::{stdout, AsyncWriteExt as _};

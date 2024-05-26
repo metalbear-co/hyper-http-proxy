@@ -1,8 +1,8 @@
-# hyper-proxy2
+# hyper-http-proxy
 
-[![Checks](https://github.com/siketyan/hyper-proxy2/actions/workflows/checks.yaml/badge.svg)](https://github.com/siketyan/hyper-proxy2/actions/workflows/checks.yaml)
-[![MIT licensed](https://img.shields.io/github/license/siketyan/hyper-proxy2)](./LICENSE-MIT.md)
-[![crates.io](https://img.shields.io/crates/v/hyper-proxy2)](https://crates.io/crates/hyper-proxy2)
+[![Checks](https://github.com/metalbear-co/hyper-http-proxy/actions/workflows/checks.yaml/badge.svg)](https://github.com/metalbear-co/hyper-http-proxy/actions/workflows/checks.yaml)
+[![MIT licensed](https://img.shields.io/github/license/metalbear-co/hyper-http-proxy)](./LICENSE-MIT.md)
+[![crates.io](https://img.shields.io/crates/v/hyper-http-proxy)](https://crates.io/crates/hyper-http-proxy)
 
 A proxy connector for [hyper][1] based applications.
 
@@ -17,7 +17,7 @@ use bytes::Bytes;
 use headers::Authorization;
 use http_body_util::{BodyExt, Empty};
 use hyper::{Request, Uri};
-use hyper_proxy2::{Proxy, ProxyConnector, Intercept};
+use hyper_http_proxy::{Proxy, ProxyConnector, Intercept};
 use hyper_util::client::legacy::Client;
 use hyper_util::client::legacy::connect::HttpConnector;
 use hyper_util::rt::TokioExecutor;
@@ -68,22 +68,28 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
 ## Features
 
-`hyper-proxy2` exposes three main Cargo features, to configure which TLS implementation it uses to
+`hyper-http-proxy` exposes Cargo features, to configure which TLS implementation it uses to
 connect to a proxy. It can also be configured without TLS support, by compiling without default
 features entirely. The supported list of configurations is:
 
+native-tls = ["dep:native-tls", "tokio-native-tls", "hyper-tls", "__tls"]
+native-tls-vendored = ["native-tls", "tokio-native-tls?/vendored"]
+rustls-tls-manual-roots = ["__rustls"]
+rustls-tls-webpki-roots = ["dep:webpki-roots", "__rustls"]
+rustls-tls-native-roots = ["dep:rustls-native-certs", "__rustls", "hyper-rustls/rustls-native-certs"]
 1. No TLS support (`default-features = false`)
-2. TLS support via `native-tls` to link against the operating system's native TLS implementation
-   (default)
-3. TLS support via `rustls` (`default-features = false, features = ["rustls"]`)
+2. TLS support via `native-tls` to link against the operating system's native TLS implementation (`default-features = false, features = ["native-tls"]`)
+3. TLS support via `rustls` using native certificates (default).
 4. TLS support via `rustls`, using a statically-compiled set of CA certificates to bypass the
-   operating system's default store (`default-features = false, features = ["rustls-webpki"]`)
+   operating system's default store (`default-features = false, features = ["rustls-tls-webpki-roots"]`)
 
 ## Credits
 
+This was forked from https://github.com/siketyan/hyper-http-proxy that originally forked from https://github.com/tafia/hyper-proxy
+
+
 Large part of the code comes from [reqwest][2].
 The core part as just been extracted and slightly enhanced.
-
  Main changes are:
 - support for authentication
 - add non secured tunneling
@@ -91,4 +97,4 @@ The core part as just been extracted and slightly enhanced.
 
 [1]: https://crates.io/crates/hyper
 [2]: https://github.com/seanmonstar/reqwest
-[3]: https://docs.rs/hyper-proxy2
+[3]: https://docs.rs/hyper-http-proxy

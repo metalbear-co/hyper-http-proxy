@@ -45,8 +45,6 @@ default = ["default-tls"]
 default-tls = ["rustls-tls-native-roots"]
 native-tls = ["dep:native-tls", "tokio-native-tls", "hyper-tls", "__tls"]
 native-tls-vendored = ["native-tls", "tokio-native-tls?/vendored"]
-rustls-tls = ["rustls-tls-webpki-roots"]
-rustls-tls-manual-roots = ["__rustls"]
 rustls-tls-webpki-roots = ["dep:webpki-roots", "__rustls"]
 rustls-tls-native-roots = ["dep:rustls-native-certs", "__rustls", "hyper-rustls/rustls-native-certs"]
 
