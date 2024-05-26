@@ -139,9 +139,12 @@ pub(crate) fn io_err<E: Into<Box<dyn std::error::Error + Send + Sync>>>(e: E) ->
     io::Error::new(io::ErrorKind::Other, e)
 }
 
+pub type CustomProxyCallback =
+    dyn Fn(Option<&str>, Option<&str>, Option<u16>) -> bool + Send + Sync;
+
 /// A Custom struct to proxy custom uris
 #[derive(Clone)]
-pub struct Custom(Arc<dyn Fn(Option<&str>, Option<&str>, Option<u16>) -> bool + Send + Sync>);
+pub struct Custom(Arc<CustomProxyCallback>);
 
 impl fmt::Debug for Custom {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
@@ -192,7 +195,7 @@ impl Proxy {
     pub fn new<I: Into<Intercept>>(intercept: I, uri: Uri) -> Proxy {
         Proxy {
             intercept: intercept.into(),
-            uri: uri,
+            uri,
             headers: HeaderMap::new(),
             force_connect: false,
         }
@@ -313,7 +316,7 @@ impl<C> ProxyConnector<C> {
     pub fn unsecured(connector: C) -> Self {
         ProxyConnector {
             proxies: Vec::new(),
-            connector: connector,
+            connector,
             tls: None,
         }
     }
@@ -336,7 +339,7 @@ impl<C> ProxyConnector<C> {
     /// Change proxy connector
     pub fn with_connector<CC>(self, connector: CC) -> ProxyConnector<CC> {
         ProxyConnector {
-            connector: connector,
+            connector,
             proxies: self.proxies,
             tls: self.tls,
         }
@@ -349,7 +352,7 @@ impl<C> ProxyConnector<C> {
     }
 
     /// Set or unset tls when tunneling
-    #[cfg(any(feature = "__rustls"))]
+    #[cfg(feature = "__rustls")]
     pub fn set_tls(&mut self, tls: Option<TlsConnector>) {
         self.tls = tls;
     }
@@ -436,8 +439,9 @@ where
                 };
 
                 Box::pin(async move {
+                    // this hack will gone once `try_blocks` will eventually stabilized
+                    #[allow(clippy::never_loop)]
                     loop {
-                        // this hack will gone once `try_blocks` will eventually stabilized
                         let proxy_stream = mtry!(mtry!(connection).await.map_err(io_err));
                         let tunnel_stream = mtry!(tunnel.with_stream(proxy_stream).await);
 
@@ -459,13 +463,12 @@ where
                                 use hyper_util::rt::TokioIo;
                                 let server_name =
                                     mtry!(ServerName::try_from(host.to_string()).map_err(io_err));
-                                let tls = TlsConnector::from(tls);
                                 let secure_stream = mtry!(tls
                                     .connect(server_name, TokioIo::new(tunnel_stream))
                                     .await
                                     .map_err(io_err));
 
-                                Ok(ProxyStream::Secured(TokioIo::new(secure_stream)))
+                                Ok(ProxyStream::Secured(Box::new(TokioIo::new(secure_stream))))
                             }
 
                             #[cfg(not(feature = "__tls",))]

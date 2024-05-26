@@ -145,7 +145,7 @@ mod tests {
         super::new(&host, port, &HeaderMap::new()).with_stream(conn)
     }
 
-    #[cfg_attr(rustfmt, rustfmt_skip)]
+    #[rustfmt::skip]
     macro_rules! mock_tunnel {
         () => {{
             mock_tunnel!(

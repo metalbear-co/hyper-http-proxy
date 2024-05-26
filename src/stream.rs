@@ -25,7 +25,7 @@ pub enum ProxyStream<R> {
     NoProxy(R),
     Regular(R),
     #[cfg(feature = "__tls")]
-    Secured(TlsStream<R>),
+    Secured(Box<TlsStream<R>>),
 }
 
 macro_rules! match_fn_pinned {
