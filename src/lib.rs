@@ -455,7 +455,7 @@ where
                                     .await
                                     .map_err(io_err));
 
-                                Ok(ProxyStream::Secured(TokioIo::new(secure_stream)))
+                                Ok(ProxyStream::Secured(Box::new(TokioIo::new(secure_stream))))
                             }
 
                             #[cfg(feature = "__rustls")]
