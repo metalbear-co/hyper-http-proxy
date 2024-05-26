@@ -1,6 +1,6 @@
 [package]
-name = "hyper-proxy2"
-version = "0.1.0"
+name = "hyper-http-proxy"
+version = "1.0.0"
 authors = ["MetalBear Tech LTD <hi@metalbear.co>"]
 description = "A proxy connector for Hyper-based applications"
 documentation = "https://docs.rs/hyper-http-proxy"
@@ -14,7 +14,7 @@ rust-version = "1.70.0"
 
 [dependencies]
 tokio = { version = "1.35", features = ["io-std", "io-util"] }
-hyper = { version = "1.0", features = ["client"] }
+hyper = { version = "1", features = ["client"] }
 hyper-util = { version = "0.1", features = ["client", "client-legacy", "tokio"] }
 
 tower-service = "0.3"
@@ -26,11 +26,11 @@ hyper-tls = { version = "0.6", optional = true }
 tokio-native-tls = { version = "0.3", optional = true }
 native-tls = { version = "0.2", optional = true }
 tokio-rustls = { version = "0.26", optional = true, default-features = false}
-hyper-rustls = { version = "0.27.0", optional = true }
+hyper-rustls = { version = "0.27", optional = true, default-features = false }
 
-rustls-webpki = { version = "0.102.4", optional = true }
-rustls-native-certs = { version = "0.7.0", optional = true }
-webpki-roots = { version = "0.26.0", optional = true }
+rustls-webpki = { version = "0.102", optional = true }
+rustls-native-certs = { version = "0.7", optional = true }
+webpki-roots = { version = "0.26", optional = true }
 headers = "0.4"
 
 [dev-dependencies]
@@ -48,7 +48,7 @@ native-tls-vendored = ["native-tls", "tokio-native-tls?/vendored"]
 rustls-tls = ["rustls-tls-webpki-roots"]
 rustls-tls-manual-roots = ["__rustls"]
 rustls-tls-webpki-roots = ["dep:webpki-roots", "__rustls"]
-rustls-tls-native-roots = ["dep:rustls-native-certs", "__rustls"]
+rustls-tls-native-roots = ["dep:rustls-native-certs", "__rustls", "hyper-rustls/rustls-native-certs"]
 
 __tls = []
 
