@@ -193,12 +193,18 @@ pub struct Proxy {
 impl Proxy {
     /// Create a new `Proxy`
     pub fn new<I: Into<Intercept>>(intercept: I, uri: Uri) -> Proxy {
-        Proxy {
+        let mut proxy = Proxy {
             intercept: intercept.into(),
-            uri,
+            uri: uri.clone(),
             headers: HeaderMap::new(),
             force_connect: false,
+        };
+
+        if let Some((user, pass)) = extract_user_pass(uri) {
+            proxy.set_authorization(Authorization::basic(&user, &pass));
         }
+
+        proxy
     }
 
     /// Set `Proxy` authorization
@@ -516,4 +522,36 @@ fn proxy_dst(dst: &Uri, proxy: &Uri) -> io::Result<Uri> {
         .path_and_query(dst.path_and_query().unwrap().clone())
         .build()
         .map_err(|err| io_err(format!("other error: {}", err)))
+}
+
+fn extract_user_pass(uri: Uri) -> Option<(String, String)> {
+    let authority = uri.authority()?.as_str();
+    let at_pos = authority.find('@')?;
+    let userinfo = &authority[..at_pos];
+    let mut parts = userinfo.splitn(2, ':');
+    let username = parts.next()?.to_string();
+    let password = parts.next()?.to_string();
+    Some((username, password))
+}
+
+#[cfg(test)]
+mod tests {
+    use http::Uri;
+
+    use crate::{Intercept, Proxy};
+
+    #[test]
+    fn test_new_proxy_with_authorization() {
+        let proxy = Proxy::new(Intercept::All, Uri::from_static("https://bob:secret@my-proxy:8080"));
+        
+        assert_eq!(proxy.headers().get("authorization").unwrap().to_str().unwrap(),
+            "Basic Ym9iOnNlY3JldA==");
+    }
+
+    #[test]
+    fn test_new_proxy_without_authorization() {
+        let proxy = Proxy::new(Intercept::All, Uri::from_static("https://my-proxy:8080"));
+        
+        assert_eq!(proxy.headers().get("authorization"), None);
+    }
 }
