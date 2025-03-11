@@ -200,8 +200,8 @@ impl Proxy {
             force_connect: false,
         };
 
-        if let Some((user, pass)) = extract_user_pass(uri) {
-            proxy.set_authorization(Authorization::basic(&user, &pass));
+        if let Some((user, pass)) = extract_user_pass(&uri) {
+            proxy.set_authorization(Authorization::basic(user, pass));
         }
 
         proxy
@@ -524,6 +524,7 @@ fn proxy_dst(dst: &Uri, proxy: &Uri) -> io::Result<Uri> {
         .map_err(|err| io_err(format!("other error: {}", err)))
 }
 
+/// Extracts the username and password from the URI
 fn extract_user_pass(uri: &Uri) -> Option<(&str, &str)> {
     let authority = uri.authority()?.as_str();
     let (userinfo, _) = authority.rsplit_once('@')?;
