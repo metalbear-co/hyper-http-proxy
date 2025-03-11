@@ -524,13 +524,12 @@ fn proxy_dst(dst: &Uri, proxy: &Uri) -> io::Result<Uri> {
         .map_err(|err| io_err(format!("other error: {}", err)))
 }
 
-fn extract_user_pass(uri: Uri) -> Option<(String, String)> {
+fn extract_user_pass(uri: &Uri) -> Option<(&str, &str)> {
     let authority = uri.authority()?.as_str();
-    let at_pos = authority.find('@')?;
-    let userinfo = &authority[..at_pos];
+    let (userinfo, _) = authority.rsplit_once('@')?;
     let mut parts = userinfo.splitn(2, ':');
-    let username = parts.next()?.to_string();
-    let password = parts.next()?.to_string();
+    let username = parts.next()?;
+    let password = parts.next()?;
     Some((username, password))
 }
 
