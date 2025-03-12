@@ -542,16 +542,26 @@ mod tests {
 
     #[test]
     fn test_new_proxy_with_authorization() {
-        let proxy = Proxy::new(Intercept::All, Uri::from_static("https://bob:secret@my-proxy:8080"));
-        
-        assert_eq!(proxy.headers().get("authorization").unwrap().to_str().unwrap(),
-            "Basic Ym9iOnNlY3JldA==");
+        let proxy = Proxy::new(
+            Intercept::All,
+            Uri::from_static("https://bob:secret@my-proxy:8080"),
+        );
+
+        assert_eq!(
+            proxy
+                .headers()
+                .get("authorization")
+                .unwrap()
+                .to_str()
+                .unwrap(),
+            "Basic Ym9iOnNlY3JldA=="
+        );
     }
 
     #[test]
     fn test_new_proxy_without_authorization() {
         let proxy = Proxy::new(Intercept::All, Uri::from_static("https://my-proxy:8080"));
-        
+
         assert_eq!(proxy.headers().get("authorization"), None);
     }
 }
