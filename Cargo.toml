@@ -28,7 +28,6 @@ native-tls = { version = "0.2", optional = true }
 tokio-rustls = { version = "0.26", optional = true, default-features = false}
 hyper-rustls = { version = "0.27", optional = true, default-features = false }
 
-rustls-native-certs = { version = "0.7", optional = true }
 webpki-roots = { version = "0.26", optional = true }
 headers = "0.4"
 
@@ -45,7 +44,7 @@ default-tls = ["rustls-tls-native-roots"]
 native-tls = ["dep:native-tls", "tokio-native-tls", "hyper-tls", "__tls"]
 native-tls-vendored = ["native-tls", "tokio-native-tls?/vendored"]
 rustls-tls-webpki-roots = ["dep:webpki-roots", "__rustls", "hyper-rustls/webpki-roots"]
-rustls-tls-native-roots = ["dep:rustls-native-certs", "__rustls", "hyper-rustls/rustls-native-certs"]
+rustls-tls-native-roots = ["__rustls", "hyper-rustls/rustls-native-certs"]
 
 __tls = []
 
