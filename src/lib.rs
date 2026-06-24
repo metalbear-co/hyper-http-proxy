@@ -383,7 +383,7 @@ impl<C> ProxyConnector<C> {
     /// These headers must be appended to the hyper Request for the proxy to work properly.
     /// This is needed only for http requests.
     pub fn http_headers(&self, uri: &Uri) -> Option<&HeaderMap> {
-        if uri.scheme_str().map_or(true, |s| s != "http") {
+        if uri.scheme_str() != Some("http") {
             return None;
         }
 
@@ -528,9 +528,7 @@ fn proxy_dst(dst: &Uri, proxy: &Uri) -> io::Result<Uri> {
 fn extract_user_pass(uri: &Uri) -> Option<(&str, &str)> {
     let authority = uri.authority()?.as_str();
     let (userinfo, _) = authority.rsplit_once('@')?;
-    let mut parts = userinfo.splitn(2, ':');
-    let username = parts.next()?;
-    let password = parts.next()?;
+    let (username, password) = userinfo.split_once(':')?;
     Some((username, password))
 }
 
