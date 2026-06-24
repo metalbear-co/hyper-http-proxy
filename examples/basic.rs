@@ -17,10 +17,20 @@ async fn main() -> Result<(), Box<dyn Error>> {
         proxy.set_authorization(Authorization::basic("John Doe", "Agent1234"));
         let connector = HttpConnector::new();
 
-        #[cfg(not(any(feature = "tls", feature = "rustls-base", feature = "openssl-tls")))]
+        #[cfg(not(any(
+            feature = "native-tls",
+            feature = "native-tls-vendored",
+            feature = "rustls-tls-webpki-roots",
+            feature = "rustls-tls-native-roots"
+        )))]
         let proxy_connector = ProxyConnector::from_proxy_unsecured(connector, proxy);
 
-        #[cfg(any(feature = "tls", feature = "rustls-base", feature = "openssl"))]
+        #[cfg(any(
+            feature = "native-tls",
+            feature = "native-tls-vendored",
+            feature = "rustls-tls-webpki-roots",
+            feature = "rustls-tls-native-roots"
+        ))]
         let proxy_connector = ProxyConnector::from_proxy(connector, proxy).unwrap();
 
         proxy_connector
