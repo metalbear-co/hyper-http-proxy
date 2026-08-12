@@ -457,6 +457,7 @@ where
                 } else {
                     None
                 };
+                #[cfg(feature = "__tls")]
                 let tls_handshake_timeout = self.tls_handshake_timeout;
 
                 Box::pin(async move {
@@ -532,6 +533,7 @@ where
 /// Awaits `fut`, bounding it by `timeout` when set.
 ///
 /// A `None` timeout awaits `fut` directly, so it never yields the outer timeout error.
+#[cfg(feature = "__tls")]
 async fn with_optional_timeout<F: Future>(
     timeout: Option<Duration>,
     fut: F,
@@ -539,7 +541,7 @@ async fn with_optional_timeout<F: Future>(
     match timeout {
         Some(timeout) => tokio::time::timeout(timeout, fut)
             .await
-            .map_err(|_| io_err("TLS handshake timed out")),
+            .map_err(|_| io::Error::new(io::ErrorKind::TimedOut, "TLS handshake timed out")),
         None => Ok(fut.await),
     }
 }
@@ -601,7 +603,7 @@ mod tests {
         assert_eq!(proxy.headers().get("authorization"), None);
     }
 
-    #[cfg(feature = "__rustls")]
+    #[cfg(feature = "__tls")]
     #[tokio::test]
     async fn tls_handshake_timeout_fires_against_a_stalled_proxy_tunnel() {
         use std::time::Duration;
@@ -614,6 +616,7 @@ mod tests {
 
         use crate::{Proxy, ProxyConnector};
 
+        #[cfg(feature = "__rustls")]
         let _ = tokio_rustls::rustls::crypto::ring::default_provider().install_default();
 
         let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();

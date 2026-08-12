@@ -13,7 +13,7 @@ edition = "2021"
 rust-version = "1.70.0"
 
 [dependencies]
-tokio = { version = "1.35", features = ["io-std", "io-util", "time"] }
+tokio = { version = "1.35", features = ["io-std", "io-util"] }
 hyper = { version = "1", features = ["client"] }
 hyper-util = { version = "0.1", features = ["client", "client-legacy", "tokio"] }
 
@@ -47,7 +47,7 @@ native-tls-vendored = ["native-tls", "tokio-native-tls?/vendored"]
 rustls-tls-webpki-roots = ["dep:webpki-roots", "__rustls", "hyper-rustls/webpki-roots"]
 rustls-tls-native-roots = ["__rustls", "hyper-rustls/rustls-native-certs"]
 
-__tls = []
+__tls = ["tokio/time"]
 
 # Enables common rustls code.
 # Equivalent to rustls-tls-manual-roots but shorter :)
