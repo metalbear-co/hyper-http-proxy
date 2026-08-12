@@ -67,6 +67,7 @@ use std::{
     future::Future,
     pin::Pin,
     task::{Context, Poll},
+    time::Duration,
 };
 
 use futures_util::future::TryFutureExt;
@@ -255,6 +256,7 @@ impl Proxy {
 pub struct ProxyConnector<C> {
     proxies: Vec<Proxy>,
     connector: C,
+    tls_handshake_timeout: Option<Duration>,
 
     #[cfg(all(not(feature = "__rustls"), feature = "native-tls"))]
     tls: Option<NativeTlsConnector>,
@@ -293,6 +295,7 @@ impl<C> ProxyConnector<C> {
         Ok(ProxyConnector {
             proxies: Vec::new(),
             connector: connector,
+            tls_handshake_timeout: None,
             tls: Some(tls),
         })
     }
@@ -314,6 +317,7 @@ impl<C> ProxyConnector<C> {
         Ok(ProxyConnector {
             proxies: Vec::new(),
             connector,
+            tls_handshake_timeout: None,
             tls: Some(tls),
         })
     }
@@ -323,6 +327,7 @@ impl<C> ProxyConnector<C> {
         ProxyConnector {
             proxies: Vec::new(),
             connector,
+            tls_handshake_timeout: None,
             tls: None,
         }
     }
@@ -347,6 +352,7 @@ impl<C> ProxyConnector<C> {
         ProxyConnector {
             connector,
             proxies: self.proxies,
+            tls_handshake_timeout: self.tls_handshake_timeout,
             tls: self.tls,
         }
     }
@@ -361,6 +367,14 @@ impl<C> ProxyConnector<C> {
     #[cfg(feature = "__rustls")]
     pub fn set_tls(&mut self, tls: Option<TlsConnector>) {
         self.tls = tls;
+    }
+
+    /// Set or unset the timeout bounding the TLS handshake performed when tunneling through
+    /// this proxy to an HTTPS destination.
+    ///
+    /// `None` (the default) means the handshake is not bounded by a timeout.
+    pub fn set_tls_handshake_timeout(&mut self, timeout: Option<Duration>) {
+        self.tls_handshake_timeout = timeout;
     }
 
     /// Get the current proxies
@@ -443,6 +457,8 @@ where
                 } else {
                     None
                 };
+                #[cfg(feature = "__tls")]
+                let tls_handshake_timeout = self.tls_handshake_timeout;
 
                 Box::pin(async move {
                     // this hack will gone once `try_blocks` will eventually stabilized
@@ -456,10 +472,14 @@ where
                             Some(tls) => {
                                 use hyper_util::rt::TokioIo;
                                 let tls = TlsConnector::from(tls);
-                                let secure_stream = mtry!(tls
-                                    .connect(&host, TokioIo::new(tunnel_stream))
+                                let secure_stream = mtry!(mtry!(
+                                    with_optional_timeout(
+                                        tls_handshake_timeout,
+                                        tls.connect(&host, TokioIo::new(tunnel_stream))
+                                    )
                                     .await
-                                    .map_err(io_err));
+                                )
+                                .map_err(io_err));
 
                                 Ok(ProxyStream::Secured(Box::new(TokioIo::new(secure_stream))))
                             }
@@ -469,10 +489,14 @@ where
                                 use hyper_util::rt::TokioIo;
                                 let server_name =
                                     mtry!(ServerName::try_from(host.to_string()).map_err(io_err));
-                                let secure_stream = mtry!(tls
-                                    .connect(server_name, TokioIo::new(tunnel_stream))
+                                let secure_stream = mtry!(mtry!(
+                                    with_optional_timeout(
+                                        tls_handshake_timeout,
+                                        tls.connect(server_name, TokioIo::new(tunnel_stream))
+                                    )
                                     .await
-                                    .map_err(io_err));
+                                )
+                                .map_err(io_err));
 
                                 Ok(ProxyStream::Secured(Box::new(TokioIo::new(secure_stream))))
                             }
@@ -503,6 +527,22 @@ where
                     .map_err(|err| io_err(err.into())),
             )
         }
+    }
+}
+
+/// Awaits `fut`, bounding it by `timeout` when set.
+///
+/// A `None` timeout awaits `fut` directly, so it never yields the outer timeout error.
+#[cfg(feature = "__tls")]
+async fn with_optional_timeout<F: Future>(
+    timeout: Option<Duration>,
+    fut: F,
+) -> io::Result<F::Output> {
+    match timeout {
+        Some(timeout) => tokio::time::timeout(timeout, fut)
+            .await
+            .map_err(|_| io::Error::new(io::ErrorKind::TimedOut, "TLS handshake timed out")),
+        None => Ok(fut.await),
     }
 }
 
@@ -561,5 +601,59 @@ mod tests {
         let proxy = Proxy::new(Intercept::All, Uri::from_static("https://my-proxy:8080"));
 
         assert_eq!(proxy.headers().get("authorization"), None);
+    }
+
+    #[cfg(feature = "__tls")]
+    #[tokio::test]
+    async fn tls_handshake_timeout_fires_against_a_stalled_proxy_tunnel() {
+        use std::time::Duration;
+
+        use hyper_util::client::legacy::connect::HttpConnector;
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+        use tokio::net::TcpListener;
+        use tokio::time::timeout;
+        use tower_service::Service as _;
+
+        use crate::{Proxy, ProxyConnector};
+
+        #[cfg(feature = "__rustls")]
+        let _ = tokio_rustls::rustls::crypto::ring::default_provider().install_default();
+
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+
+        // Emulates a proxy that completes the `CONNECT` tunnel but then never speaks TLS, so the
+        // client's handshake deadline is the only thing that can end the connection attempt.
+        let proxy_task = tokio::spawn(async move {
+            let (mut stream, _) = listener.accept().await.unwrap();
+            let mut buf = [0u8; 4096];
+            let _ = stream.read(&mut buf).await.unwrap();
+            stream.write_all(b"HTTP/1.1 200 OK\r\n\r\n").await.unwrap();
+            tokio::time::sleep(Duration::from_secs(30)).await;
+            drop(stream);
+        });
+
+        let proxy_uri: Uri = format!("http://{addr}").parse().unwrap();
+        let proxy = Proxy::new(Intercept::All, proxy_uri);
+
+        let mut proxy_connector = ProxyConnector::new(HttpConnector::new()).unwrap();
+        proxy_connector.add_proxy(proxy);
+        proxy_connector.set_tls_handshake_timeout(Some(Duration::from_millis(200)));
+
+        let dst: Uri = "https://example.invalid/".parse().unwrap();
+        let result = timeout(Duration::from_secs(5), proxy_connector.call(dst))
+            .await
+            .expect("request should not hit the outer test timeout");
+        let error = match result {
+            Ok(_) => panic!("handshake should time out before completing"),
+            Err(error) => error,
+        };
+
+        assert!(
+            error.to_string().contains("TLS handshake timed out"),
+            "expected a TLS handshake timeout, got: {error}"
+        );
+
+        proxy_task.abort();
     }
 }

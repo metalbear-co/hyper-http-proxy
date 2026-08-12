@@ -32,6 +32,7 @@ webpki-roots = { version = "0.26", optional = true }
 headers = "0.4"
 
 [dev-dependencies]
+rustls = { version = "0.23", default-features = false, features = ["ring"] }
 tokio = { version = "1.35", features = ["full"] }
 hyper = { version = "1.0", features = ["client", "http1"] }
 hyper-util = { version = "0.1", features = ["client", "client-legacy", "http1", "tokio"] }
@@ -46,7 +47,7 @@ native-tls-vendored = ["native-tls", "tokio-native-tls?/vendored"]
 rustls-tls-webpki-roots = ["dep:webpki-roots", "__rustls", "hyper-rustls/webpki-roots"]
 rustls-tls-native-roots = ["__rustls", "hyper-rustls/rustls-native-certs"]
 
-__tls = []
+__tls = ["tokio/time"]
 
 # Enables common rustls code.
 # Equivalent to rustls-tls-manual-roots but shorter :)
